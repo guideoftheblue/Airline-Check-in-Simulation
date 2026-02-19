@@ -6,6 +6,7 @@ typedef struct Customer{
     int class_type;
     int arrival_time;
     int service_time;
+    double queue_entry_time;
     double wait_time;
     struct Customer *next; //next customer in respective queue.
 }Customer;

@@ -9,8 +9,9 @@ Customer *create_customer(int id, int class_type, int arrival_time, int service_
     customer->class_type = class_type;
     customer->arrival_time = arrival_time;
     customer->service_time = service_time;
+    customer->queue_entry_time = 0;
     customer->wait_time = 0;
     customer->next = NULL;
 
-    return customer
+    return customer;
 }

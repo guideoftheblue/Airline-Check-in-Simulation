@@ -2,11 +2,11 @@
 
 all: ACS
 
-ACS: acs.o queue.o customer.o
-	gcc -Wall -pthread acs.o queue.o customer.o -o ACS
+ACS: ACS.o queue.o customer.o
+	gcc -Wall -pthread ACS.o queue.o customer.o -o ACS
 
-acs.o: acs.c queue.h customer.h
-	gcc -Wall -pthread -c acs.c
+ACS.o: ACS.c queue.h customer.h
+	gcc -Wall -pthread -c ACS.c
 
 queue.o: queue.c queue.h customer.h
 	gcc -Wall -pthread -c queue.c

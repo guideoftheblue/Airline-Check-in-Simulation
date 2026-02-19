@@ -18,7 +18,7 @@ void enqueue(Queue *queue, Customer *customer){
     } else {
         queue->tail->next = customer;
         queue->tail = customer;
-    }`
+    }
     
     queue->length++;
 }
