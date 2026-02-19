@@ -19,6 +19,100 @@ Queue econ_queue;
 
 struct timeval start_time; //initial relative machine time, captured in main.
 
+
+double get_elapsed_time(){
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return (now.tv_sec - start_time.tv_sec) + 
+           (now.tv_usec - start_time.tv_usec) / 1e6;
+}
+
+
+void *customer_entry(void *arg){
+    Customer *customer = (Customer *)arg;
+
+    /*determine how long its been since start of program*/
+    double elapsed_time = get_elapsed_time()
+
+    /*convert arrival_time to seconds*/
+    double arrival_time = customer->arrival_time * 0.1;
+
+    /*calculate remaining time before arrival*/
+    double sleep_time = arrival_time - elapsed_time;
+
+    /*sleep for remaining time*/
+    if (sleep_time > 0){
+        usleep((useconds_t)sleep_time * 1e6);
+        printf("A customer arrives: customer ID %2d. \n", customer->id);
+    } else {
+        printf("Customer %2d is late! Better hurry!\n", customer->id);
+    }
+
+    pthread_mutex_lock(&acs_mutex);
+
+    queue_entry_time = get_elapsed_time()
+    customer->wait_time = queue_entry_time;
+
+    if (customer->class_type == 1){
+        enqueue(&business_queue, customer);
+        printf("A customer enters a queue: queue ID 1, and length of the queue %2d. \n", business_queue.length);
+    } else {
+        enqueue(&econ_queue, customer);
+        printf("A customer enters a queue: queue ID 0, and length of the queue %2d. \n", econ_queue.length);
+    }
+    
+    pthread_cond_broadcast(&customers_available);
+
+    pthread_mutex_unlock(&acs_mutex);
+
+    return NULL;
+}
+
+
+void *clerk_entry(void *arg){
+    int clerkID = *(int *)arg;
+
+    while(1){
+        pthread_mutex_lock(&acs_mutex);
+
+        while (business_queue.length == 0 && econ_queue.length == 0 && sim_status == 0){ //while queues empty and customers left to serve
+            pthread_cond_wait(&customers_available, &acs_mutex);
+        }
+
+        if (business_queue.length == 0 && econ_queue.length == 0 && sim_status == 1){ //all customers served, exit thread
+            pthread_mutex_unlock(&acs_mutex);
+            break;
+        }
+
+        Customer *customer = NULL;
+        if (business_queue.length != 0){
+            customer = dequeue(&business_queue);
+        } else if (econ_queue.length != 0){
+            customer = dequeue(&econ_queue);
+        }
+
+        pthread_mutex_unlock(&acs_mutex);
+
+        double elapsed_time = get_elapsed_time()
+
+        // print start
+        printf("A clerk starts serving a customer: start time %.2f seconds, the customer ID %2d, the clerk ID %1d. \n", elapsed_time, customer->id, clerkID);
+
+        double wait_time = elapsed_time - customer->wait_time; //customer->wait_time holds queue entry time, finding total time spent in queue
+        customer->wait_time = wait_time;
+
+        usleep((useconds_t)customer->service_time * 1e5); //serving customer (1/10 of second -> microsecond)
+
+        //print end
+        double end_time = get_elapsed_time()
+        printf("A clerk finishes serving a customer: end time %.2f seconds, the customer ID %2d, the clerk ID %d. \n", end_time, customer->id, clerkID);
+        
+    }
+
+    return NULL;  
+}
+
+
 int main(int argc, char *argv[]) {
 
     if (argc != 2){
@@ -136,9 +230,8 @@ int main(int argc, char *argv[]) {
 	for(int i = 0; i < total_customers; i++){
 		pthread_join(customers[i], NULL);
 	}
-    
 
-    pthread_mutex_lock(&acs_mutex); 
+    pthread_mutex_lock(&acs_mutex); //mutex so there's no race with clerks for sim_status
 
     sim_status= 1; //update simulation status to complete, allowing clerks to exit
     pthread_cond_broadcast(&customers_available);
@@ -164,56 +257,8 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void *clerk_entry(void *arg){
-    int clerkID = *(int *)arg;
 
-    while(1){
 
-        
-    }
-}
-
-void *customer_entry(void *arg){
-    Customer *customer = (Customer *)arg;
-
-    struct timeval now_time;
-    gettimeofday(&now_time, NULL);
-
-    /*determine how long its been since start of program*/
-    double elapsed_time = (now_time.tv_sec - start_time.tv_sec) +
-                          (now_time.tv_usec - start_time.tv_usec)/1e6; //seconds + (microseconds -> seconds)
-
-    /*convert arrrival_time to seconds*/
-    double arrival_time = customer->arrival_time * 0.1;
-
-    /*calculate remaining time before arrival*/
-    double remaining_time = arrival_time - elapsed_time;
-
-    /*sleep for remaining time*/
-    if (remaining_time > 0){
-        usleep((useconds_t)remaining_time * 1e6);
-        printf("A customer arrives: customer ID %2d. \n", customer->id);
-    } else {
-        printf("Customer %2d is late! Better hurry!\n", customer->id);
-    }
-
-    pthread_mutex_lock(&acs_mutex);
-
-    double queue_entry_time = elapsed_time + (remaining_time > 0? remaining_time : 0); //if customer is late, just uses elapsed time
-    customer->wait_time = queue_entry_time;
-
-    if (customer->class_type == 1){
-        enqueue(&business_queue, customer);
-    } else {
-        enqueue(&econ_queue, customer);
-    }
-    
-    pthread_cond_broadcast(&customers_available);
-
-    pthread_mutex_unlock(&acs_mutex);
-
-    return NULL;
-}
 
 
 
