@@ -14,7 +14,7 @@ The program uses concurrent clerks and customers and measures real-time waiting.
 
 ## Input
 
-Input Files should be formatted as such:
+Input files should be formatted as such:
 
 3  
 1:0,0,5  
@@ -35,5 +35,6 @@ Arrival and service time are in tenths of a second.
 Step 1: Use 'make' in a Linux environment in the same directory to compile the project. This will   
         create an ACS executable  
 Step 2: Run ./ACS <input file name> (Input file in same directory)
+
 
 
